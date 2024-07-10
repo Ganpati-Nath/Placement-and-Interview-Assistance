@@ -1,5 +1,8 @@
-youtube_transcript_api
-streamlit
+google==3.0.0
 google-generativeai
-python-dotenv
-pathlib
+googlesearch_python==1.2.4
+protobuf==5.27.2
+python-dotenv==1.0.1
+Requests==2.32.3
+streamlit==1.36.0
+streamlit_lottie==0.0.5

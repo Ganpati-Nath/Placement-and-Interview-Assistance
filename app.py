@@ -1,163 +1,204 @@
+import json
 import streamlit as st
 from dotenv import load_dotenv
+from streamlit_lottie import st_lottie
 import os
 import google.generativeai as genai
-from youtube_transcript_api import YouTubeTranscriptApi, NoTranscriptFound, TranscriptsDisabled
-import re
+import time
+from googlesearch import search
+import requests
 
+# Set Streamlit page configuration
 st.set_page_config(
-    page_title="YT-Transcripter",
-    page_icon="favicon.ico",
-    layout="centered",
+    page_title="Placement and Interview Assistance...",
+    page_icon="🎓",
+    layout="wide",
     initial_sidebar_state="auto",
 )
 
-load_dotenv()  # Load all the environment variables
+# Load environment variables and configure generative AI
+load_dotenv()
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
-prompt = """Title of the Video: [Insert Video Title Here]
-
-Video Length: [Insert Video Length Here]
-
-Channel Name: [Insert Channel Name Here]
-
-Summary Guidelines:
-
-1. **Main Points**: Identify and summarize the primary topics and key arguments discussed in the video. Ensure all significant details are included.
-
-2. **Highlights**: Capture noteworthy moments, surprising facts, or important quotes that stand out in the video.
-
-3. **Structure**: Break down the video into sections such as introduction, main content, and conclusion, providing a clear outline.
-
-4. **Speaker Information**: Mention the speaker(s) involved, including their names and relevant credentials or background information.
-
-5. **Visuals and Graphics**: Describe any critical visuals, graphics, or on-screen text that enhance the understanding of the content.
-
-6. **Examples and Anecdotes**: Include any examples, case studies, or personal anecdotes shared to illustrate key points.
-
-7. **Conclusion and Takeaways**: Summarize the closing remarks and list any actionable takeaways or advice provided.
-
-**Example Summary:**
-
-**Title of the Video:** "The Science of Sleep: How to Improve Your Sleep Quality"
-
-**Video Length:** 15:32
-
-**Channel Name:** Health Insights
-
-**Summary:**
-
-**Main Points:**
-- Importance of sleep for health and well-being.
-- Stages of sleep: REM and non-REM.
-- Factors affecting sleep quality: diet, exercise, environment.
-- Tips for better sleep: consistent schedule, restful environment.
-
-**Highlights:**
-- Quote: "Sleep is as crucial as nutrition and exercise" - Dr. Smith.
-- Fact: "Adults need 7-9 hours of sleep per night."
-
-**Structure:**
-- Introduction: Overview of sleep's importance.
-- Main Content: Sleep stages, factors affecting sleep.
-- Conclusion: Tips for improving sleep.
-
-**Speaker Information:**
-- Dr. Jane Smith, a sleep specialist with 20 years of experience.
-
-**Visuals and Graphics:**
-- Diagrams of the sleep cycle.
-- Charts on the effects of poor sleep.
-
-**Examples and Anecdotes:**
-- Dr. Smith's anecdote about a patient who improved sleep quality by changing bedtime routine.
-
-**Conclusion and Takeaways:**
-- Prioritize sleep for better health.
-- Key takeaway: Consistent sleep schedule and restful environment.
-
-**Instructions:**
-1. Watch the video thoroughly.
-2. Note the main points, highlights, structure, speakers, visuals, examples, and conclusion.
-3. Write a concise summary using the provided format.
-4. Ensure the summary is clear, informative, and captures the video's essence."""
-
-# Function to extract the transcript data from YouTube videos
-def extract_transcript_details(youtube_video_url):
-    try:
-        video_id = get_video_id(youtube_video_url)
-        transcript_text = YouTubeTranscriptApi.get_transcript(video_id)
-
-        transcript = " ".join([entry["text"] for entry in transcript_text])
-        return transcript
-
-    except NoTranscriptFound:
-        return "No subtitles found for this video."
-    except TranscriptsDisabled:
-        return "Subtitles are disabled for this video."
-    except Exception as e:
-        raise e
-
-# Function to generate content based on the transcript and prompt
-def generate_gemini_content(transcript_text, prompt):
+# Function to generate response using Gemini Pro
+def generate_gemini_response(query):
     model = genai.GenerativeModel("gemini-pro")
-    response = model.generate_content(prompt + transcript_text)
+    response = model.generate_content(query)
     return response.text
 
-# Function to extract video ID from the URL
-def get_video_id(url):
-    pattern = r"(?:v=|\/)([0-9A-Za-z_-]{11}).*"
-    match = re.search(pattern, url)
-    if match:
-        return match.group(1)
-    return None
+# Function to fetch resources using Google Search
+def fetch_resources(query):
+    try:
+        search_results = search(query, num=5, stop=5, pause=2)
+        resources = [{"title": f"Resource {i+1}", "link": link} for i, link in enumerate(search_results)]
+        return resources
+    except Exception as e:
+        st.error(f"Error fetching resources: {str(e)}")
+        return []
 
-st.title("YouTube Transcript to Detailed Notes Converter")
-youtube_link = st.text_input("Enter YouTube Video Link:")
+# Function to load Lottie animation
+def load_lottieurl(url: str):
+    try:
+        r = requests.get(url)
+        r.raise_for_status()
+        return r.json()
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error loading Lottie animation: {e}")
+        return None
+    except json.JSONDecodeError as e:
+        st.error(f"Error decoding JSON: {e}")
+        st.text(r.text)  # Print the response text for debugging
+        return None
 
-if youtube_link:
-    video_id = get_video_id(youtube_link)
-    if video_id:
-        embed_url = f"https://www.youtube.com/embed/{video_id}?autoplay=1"
-        st.markdown(
-            f"""
-            <style>
-            .video-container {{
-                position: relative;
-                padding-bottom: 56.25%;
-                height: 0;
-                overflow: hidden;
-                max-width: 100%;
-                background: #000;
-                margin: 0 auto;
-            }}
-            .video-container iframe {{
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-            }}
-            </style>
-            <div class="video-container">
-                <iframe src="{embed_url}" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-    else:
-        st.error("Invalid YouTube URL")
+# Load Lottie animation
+lottie_url = "https://lottie.host/f6c2a0ec-981a-43d5-a3b9-ebe90532628e/7eSvhWa3nC.json"
+lottie_animation = load_lottieurl(lottie_url)
 
-if st.button("Get Detailed Notes"):
-    if video_id:
-        transcript_text = extract_transcript_details(youtube_link)
-        if "No subtitles found" in transcript_text or "Subtitles are disabled" in transcript_text:
-            st.error(transcript_text)
-        elif transcript_text:
-            summary = generate_gemini_content(transcript_text, prompt)
-            st.markdown("## Detailed Notes:")
-            st.write(summary)
+# CSS for Typewriter Effect and Layout Adjustments
+st.markdown(
+    """
+    <style>
+    body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        font-family: 'Monospace', sans-serif;
+        background: black;
+    }
+
+    .typewriter h1 {
+        overflow: hidden; 
+        border-right: .15em solid orange; 
+        white-space: nowrap; 
+        margin: 0 auto; 
+        letter-spacing: .15em; 
+        animation: typing 3.5s steps(40, end), blink-caret .75s step-end infinite;
+        position: relative;
+        z-index: 1;
+    }
+
+    @keyframes typing {
+        from { width: 0 }
+        to { width: 100% }
+    }
+    @keyframes blink-caret {
+        from, to { border-color: transparent }
+        50% { border-color: orange }
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 1200px) {
+        .typewriter h1 {
+            font-size: 1.8em;
+        }
+    }
+    @media (max-width: 992px) {
+        .typewriter h1 {
+            font-size: 1.6em;
+        }
+    }
+    @media (max-width: 768px) {
+        .typewriter h1 {
+            font-size: 1.4em;
+        }
+    }
+    @media (max-width: 576px) {
+        .typewriter h1 {
+            font-size: 1.2em;
+        }
+    }
+
+    .lottie-background {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+    }
+
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# Main application with Typewriter Effect for the Title
+st.markdown(
+    """
+    <div class="typewriter">
+        <h1>Placement and Interview Assistance...</h1>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+# Display Lottie animation as background using a container
+if lottie_animation:
+    st_lottie(lottie_animation, key="lottie_animation", height=350)
+
+# Tabs for different sections
+tabs = st.tabs(["Placement and Interview Questions", "Placement Queries", "Resources"])
+
+# Handling the tabs content
+with tabs[0]:
+    st.header("Placement and Interview Questions")
+    question = st.text_area("Ask a placement or interview question:")
+
+    if st.button("Get Answer", key="answer_btn_1"):
+        if question:
+            with st.spinner("Generating response..."):
+                time.sleep(2)
+                response = generate_gemini_response(question)
+            st.markdown("## Chatbot Response")
+            st.write(response)
         else:
-            st.error("Failed to retrieve transcript.")
-    else:
-        st.error("Please enter a valid YouTube URL.")
+            st.warning("Please enter a question before clicking 'Get Answer'.")
+
+with tabs[1]:
+    st.header("Placement Queries")
+    query = st.text_area("Ask a placement-related query:")
+
+    if st.button("Get Response", key="response_btn_1"):
+        if query:
+            with st.spinner("Generating response..."):
+                time.sleep(2)
+                response = generate_gemini_response(query)
+            st.markdown("## Chatbot Response")
+            st.write(response)
+        else:
+            st.warning("Please enter a query before clicking 'Get Response'.")
+
+with tabs[2]:
+    st.header("Resources")
+    st.markdown("Specify the type of resources you want related to placement and interview guidance:")
+    resource_query = st.text_input("Resource Type:", value='system design')
+
+    if st.button("Get Resources", key="resources_btn_1"):
+        if resource_query:
+            with st.spinner("Fetching resources..."):
+                time.sleep(2)
+                resources = fetch_resources(resource_query)
+            if resources:
+                st.markdown(f"Here are some resources related to '{resource_query}':")
+                for idx, resource in enumerate(resources, start=1):
+                    st.markdown(f"{idx}. [{resource['title']}]({resource['link']})")
+            else:
+                st.warning(f"No resources found for '{resource_query}'.")
+        else:
+            st.warning("Please enter a resource type before clicking 'Get Resources'.")
+
+# CSS for interactive animations
+st.markdown(
+    """
+    <style>
+    .stButton>button:hover {
+        background-color: #4CAF50;
+    }
+    .stMarkdown a:hover {
+        color: #007bff;
+        text-decoration: underline;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
