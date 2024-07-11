@@ -26,15 +26,28 @@ def generate_gemini_response(query):
     response = model.generate_content(query)
     return response.text
 
-# Function to fetch resources using Google Search
+# Function to fetch resources using Google Search with error handling and retry mechanism
 def fetch_resources(query):
-    try:
-        search_results = search(query, num=5, stop=5, pause=2)
-        resources = [{"title": f"Resource {i+1}", "link": link} for i, link in enumerate(search_results)]
-        return resources
-    except Exception as e:
-        st.error(f"Error fetching resources: {str(e)}")
-        return []
+    attempts = 0
+    max_attempts = 5
+    backoff_time = 1
+
+    while attempts < max_attempts:
+        try:
+            search_results = search(query, num=5, stop=5, pause=2)
+            resources = [{"title": f"Resource {i+1}", "link": link} for i, link in enumerate(search_results)]
+            return resources
+        except Exception as e:
+            if "429" in str(e):
+                attempts += 1
+                st.warning(f"Rate limited. Retrying in {backoff_time} seconds...")
+                time.sleep(backoff_time)
+                backoff_time *= 2
+            else:
+                st.error(f"Error fetching resources: {str(e)}")
+                return []
+    st.error("Max retries exceeded. Please try again later.")
+    return []
 
 # Function to load Lottie animation
 def load_lottieurl(url: str):
@@ -176,7 +189,6 @@ with tabs[2]:
     if st.button("Get Resources", key="resources_btn_1"):
         if resource_query:
             with st.spinner("Fetching resources..."):
-                time.sleep(2)
                 resources = fetch_resources(resource_query)
             if resources:
                 st.markdown(f"Here are some resources related to '{resource_query}':")
