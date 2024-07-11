@@ -10,7 +10,7 @@ import requests
 
 # Set Streamlit page configuration
 st.set_page_config(
-    page_title="Placement and Interview Assistance...",
+    page_title="Placement and Interview Guidance...",
     page_icon="🎓",
     layout="wide",
     initial_sidebar_state="auto",
@@ -105,6 +105,7 @@ st.markdown(
     @media (max-width: 576px) {
         .typewriter h1 {
             font-size: 1.2em;
+            width: 100%;
         }
     }
 
@@ -126,7 +127,7 @@ st.markdown(
 st.markdown(
     """
     <div class="typewriter">
-        <h1>Placement and Interview Assistance...</h1>
+        <h1>Placement and Interview Guidance...</h1>
     </div>
     """,
     unsafe_allow_html=True
@@ -170,8 +171,7 @@ with tabs[1]:
 
 with tabs[2]:
     st.header("Resources")
-    st.markdown("Specify the type of resources you want related to placement and interview guidance:")
-    resource_query = st.text_input("Resource Type:", value='system design')
+    resource_query = st.text_input("Resource Type:", value='')
 
     if st.button("Get Resources", key="resources_btn_1"):
         if resource_query:
