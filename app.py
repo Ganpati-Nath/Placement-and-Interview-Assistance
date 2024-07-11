@@ -10,7 +10,7 @@ import requests
 
 # Set Streamlit page configuration
 st.set_page_config(
-    page_title="Placement and Interview Guidance...",
+    page_title="Placement and Interview Guide...",
     page_icon="🎓",
     layout="wide",
     initial_sidebar_state="auto",
@@ -127,7 +127,7 @@ st.markdown(
 st.markdown(
     """
     <div class="typewriter">
-        <h1>Placement and Interview Guidance...</h1>
+        <h1>Placement and Interview Guide...</h1>
     </div>
     """,
     unsafe_allow_html=True
