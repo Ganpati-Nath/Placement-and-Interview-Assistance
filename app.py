@@ -34,7 +34,7 @@ def fetch_resources(query):
 
     while attempts < max_attempts:
         try:
-            search_results = search(query, num=5, stop=5, pause=2)
+            search_results = search(query, stop=5, pause=2)
             resources = [{"title": f"Resource {i+1}", "link": link} for i, link in enumerate(search_results)]
             return resources
         except Exception as e:
